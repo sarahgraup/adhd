@@ -16,7 +16,7 @@ class Reminder {
    */
 
   static async create({
-    userId,
+    username,
     categoryId,
     title,
     message,
@@ -29,7 +29,7 @@ class Reminder {
   }) {
     const result = await db.query(
       `
-        INSERT INTO reminder (user_id,
+        INSERT INTO reminders (username,
                               title,
                               message_id,
                               sound_id,
@@ -41,7 +41,7 @@ class Reminder {
                               is_active)
         VALUES ($1, $2, $3, $4, $5)
         RETURNING
-            user_id,
+            username,
             title,
             message_id AS "message",
             sound_id AS "sound,
@@ -52,7 +52,7 @@ class Reminder {
             snooze_duration AS "snoozeDuration"
             is_active AS "isActive"`,
       [
-        userId,
+        username,
         title,
         message,
         soundId,
@@ -81,19 +81,15 @@ class Reminder {
   static async findById(reminderId) {
     const reminderRes = await db.query(
       `
-          SELECT reminder,
-                  user_id,
-                  title,
-                  message_id AS "message",
-                  sound_id AS "sound,
-                  category_id AS "category",
-                  notification_id AS "notification",
-                  date_time_scheduled "scheduled"
-                  repeat_pattern AS "repeatPattern",
-                  snooze_duration AS "snoozeDuration"
-                  is_active AS "isActive"
-          FROM reminders
-          WHERE reminder = $1`,
+        SELECT r.reminder_id, r.username, r.title, m.content AS message, s.file_path AS sound,
+               c.name AS category, n.method_type AS notification_method,
+               r.date_time_scheduled, r.repeat_pattern, r.snooze_duration, r.is_active
+        FROM reminders AS r
+        LEFT JOIN messages AS m ON r.message_id = m.message_id
+        LEFT JOIN sounds AS s ON r.sound_id = s.sound_id
+        LEFT JOIN categories AS c ON r.category_id = c.category_id
+        LEFT JOIN notifications AS n ON r.notification_id = n.notification_id
+        WHERE r.reminder_id = $1`,
       [reminderId]
     );
 
@@ -137,7 +133,7 @@ class Reminder {
     const querySql = `
         UPDATE reminders
         SET ${setCols}
-        WHERE reminder = ${reminderVarIdx}
+        WHERE reminder_id = ${reminderVarIdx}
         RETURNING reminder,
                   user_id,
                   title,
@@ -150,7 +146,7 @@ class Reminder {
                   snooze_duration AS "snoozeDuration"
                   is_active AS "isActive"`;
 
-    const result = await db.que4ry(querySql, [...values, reminderId]);
+    const result = await db.query(querySql, [...values, reminderId]);
     const reminder = result.rows[0];
 
     if (!reminder) throw new NotFoundError(`no reminder: ${reminderId}`);
@@ -165,13 +161,13 @@ class Reminder {
    *
    * Throws NotFoundError if not found.
    */
-  async deactivate(reminderId) {
+  async toggleActive(reminderId) {
     const reminderRes = await db.query(
       `
         UPDATE reminders
-        SET is_active = false
-        WHERE reminder = $1
-        RETURNING reminder,
+        SET is_active = NOT is_active
+        WHERE reminder_id = $1
+        RETURNING reminder_id,
                   user_id,
                   title,
                   message_id AS "message",
@@ -200,8 +196,8 @@ class Reminder {
       `
           DELETE
           FROM reminders
-          WHERE reminder = $1
-          RETURNING reminder`,
+          WHERE reminder_id = $1
+          RETURNING reminder_id`,
       [reminderId]
     );
 
