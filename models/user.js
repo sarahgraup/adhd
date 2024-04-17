@@ -51,7 +51,7 @@ class User {
 
   /** Register user with data.
    *
-   * Returns { username, firstName, lastName, email, isAdmin }
+   * Returns { username, firstName, lastName, email, number }
    *
    * Throws BadRequestError on duplicates.
    **/
@@ -123,7 +123,8 @@ class User {
   /** Given a username, return data about user.
    *
    * Returns { username, first_name, last_name,  }
-   *   where reminder is { id, title, company_handle, company_name, state }
+   *   where reminder is {  reminder_id, user_id, title, message_id,
+   * sound_id, category_id, notification_id, date_time_scheduled, repeat_pattern, is_active}
    *    where category is {}
    *
    * Throws NotFoundError if user not found.
@@ -164,15 +165,12 @@ class User {
    * all the fields; this only changes provided ones.
    *
    * Data can include:
-   *   { firstName, lastName, password, email, isAdmin }
+   *   { firstName, lastName, password, email, number }
    *
-   * Returns { username, firstName, lastName, email, isAdmin }
+   * Returns { username, firstName, lastName, email, number }
    *
    * Throws NotFoundError if not found.
    *
-   * WARNING: this function can set a new password or make a user an admin.
-   * Callers of this function must be certain they have validated inputs to this
-   * or a serious security risks are opened.
    */
 
   static async update(username, data) {
@@ -184,7 +182,7 @@ class User {
       firstName: "first_name",
       lastName: "last_name",
       email: "email",
-      number: "number"
+      number: "number",
     });
     const usernameVarIdx = "$" + (values.length + 1);
 
@@ -221,8 +219,6 @@ class User {
 
     if (!user) throw new NotFoundError(`No user: ${username}`);
   }
-
-  
 }
 
 module.exports = User;
